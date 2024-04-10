@@ -93,21 +93,33 @@ public interface BenchmarkResult {
       assert objects != null;
 
       return () -> {
-        LongBinaryOperator hashFunc = (l, r) -> l * 31 + r;
-
-        Function<LongStream, Long> streamHasher =
-          s -> s.reduce(hashFunc).orElse(0);
-
-        ToLongFunction<String> stringHasher =
-          s -> streamHasher.apply(s.chars().mapToLong(i -> i));
-
-        Function<List<?>, Stream<String>> asStrings =
-          l -> l.stream().map(o -> Objects.toString(o, "null"));
-
-        long hash = streamHasher.apply(asStrings.apply(objects).mapToLong(stringHasher));
-        String actual = String.format("%16x", hash);
+        String actual = computeHash(objects);
         Assert.assertEquals(expected, actual, "object hash");
       };
+    }
+
+    /**
+     * computes the hash of the string representation of all objects
+     * in the given {@link List}
+     *
+     * @param objects The {@link List} of objects to be hashed.
+     * @return hash of the string representation of all objects
+     */
+    public static String computeHash(List<?> objects) {
+      assert objects != null;
+      LongBinaryOperator hashFunc = (l, r) -> l * 31 + r;
+
+      Function<LongStream, Long> streamHasher =
+              s -> s.reduce(hashFunc).orElse(0);
+
+      ToLongFunction<String> stringHasher =
+              s -> streamHasher.apply(s.chars().mapToLong(i -> i));
+
+      Function<List<?>, Stream<String>> asStrings =
+              l -> l.stream().map(o -> Objects.toString(o, "null"));
+
+      long hash = streamHasher.apply(asStrings.apply(objects).mapToLong(stringHasher));
+      return String.format("%16x", hash);
     }
 
     /**
